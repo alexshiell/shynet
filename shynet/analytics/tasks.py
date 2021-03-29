@@ -1,5 +1,4 @@
 import ipaddress
-import json
 import logging
 from hashlib import sha256
 
@@ -9,6 +8,7 @@ from celery import shared_task
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
+from django.utils import timezone
 
 from core.models import Service
 
@@ -78,6 +78,11 @@ def ingress_request(
         association_id_hash = sha256()
         association_id_hash.update(str(ip).encode("utf-8"))
         association_id_hash.update(str(user_agent).encode("utf-8"))
+        if settings.AGGRESSIVE_HASH_SALTING:
+            association_id_hash.update(str(service.pk).encode("utf-8"))
+            association_id_hash.update(
+                str(timezone.now().date().isoformat()).encode("utf-8")
+            )
         session_cache_path = (
             f"session_association_{service.pk}_{association_id_hash.hexdigest()}"
         )
@@ -116,7 +121,7 @@ def ingress_request(
                 return
             session = Session.objects.create(
                 service=service,
-                ip=ip if service.collect_ips else None,
+                ip=ip if service.collect_ips and not settings.BLOCK_ALL_IPS else None,
                 user_agent=user_agent,
                 identifier=identifier.strip(),
                 browser=ua.browser.family or "",
@@ -179,7 +184,12 @@ def ingress_request(
                 load_time=payload.get("loadTime"),
                 start_time=time,
                 last_seen=time,
+                service=service
             )
+
+            # Recalculate whether the session is a bounce
+            session.recalculate_bounce()
+
             # Set idempotency (if applicable)
             if idempotency is not None:
                 cache.set(

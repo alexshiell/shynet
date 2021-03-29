@@ -18,7 +18,7 @@ import urllib.parse as urlparse
 from django.contrib.messages import constants as messages
 
 # Increment on new releases
-VERSION = "v0.7.3"
+VERSION = "v0.8.0"
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "debug_toolbar"
 ]
 
 MIDDLEWARE = [
@@ -70,6 +71,7 @@ MIDDLEWARE = [
     "django.contrib.sites.middleware.CurrentSiteMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "shynet.urls"
@@ -247,6 +249,10 @@ LOGIN_REDIRECT_URL = "/"
 
 SITE_ID = 1
 
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
+
 # Celery
 
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "True") == "True"
@@ -321,3 +327,9 @@ SHOW_SHYNET_VERSION = os.getenv("SHOW_SHYNET_VERSION", "True") == "True"
 
 # Should Shynet show third-party icons in the dashboard?
 SHOW_THIRD_PARTY_ICONS = os.getenv("SHOW_THIRD_PARTY_ICONS", "True") == "True"
+
+# Should Shynet never collect any IP?
+BLOCK_ALL_IPS = os.getenv("BLOCK_ALL_IPS", "False") == "True"
+
+# Include date and service ID in salt?
+AGGRESSIVE_HASH_SALTING = os.getenv("AGGRESSIVE_HASH_SALTING", "False") == True

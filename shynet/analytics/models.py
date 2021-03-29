@@ -1,6 +1,7 @@
 import json
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.shortcuts import reverse
 from django.utils import timezone
@@ -21,7 +22,7 @@ class Session(models.Model):
 
     # Time
     start_time = models.DateTimeField(default=timezone.now, db_index=True)
-    last_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
     # Core request information
     user_agent = models.TextField()
@@ -48,16 +49,21 @@ class Session(models.Model):
     latitude = models.FloatField(null=True)
     time_zone = models.TextField(blank=True)
 
+    is_bounce = models.BooleanField(default=True, db_index=True)
+
     class Meta:
         ordering = ["-start_time"]
         indexes = [
             models.Index(fields=["service", "-start_time"]),
+            models.Index(fields=["service", "-last_seen"]),
             models.Index(fields=["service", "identifier"]),
         ]
 
     @property
     def is_currently_active(self):
-        return timezone.now() - self.last_seen < timezone.timedelta(seconds=10)
+        return timezone.now() - self.last_seen < timezone.timedelta(
+            milliseconds=settings.SCRIPT_HEARTBEAT_FREQUENCY * 2
+        )
 
     @property
     def duration(self):
@@ -72,6 +78,12 @@ class Session(models.Model):
             kwargs={"pk": self.service.pk, "session_pk": self.uuid},
         )
 
+    def recalculate_bounce(self):
+        bounce = self.hit_set.count() == 1
+        if bounce != self.is_bounce:
+            self.is_bounce = bounce
+            self.save()
+
 
 class Hit(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE, db_index=True)
@@ -79,7 +91,7 @@ class Hit(models.Model):
 
     # Base request information
     start_time = models.DateTimeField(default=timezone.now, db_index=True)
-    last_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     heartbeats = models.IntegerField(default=0)
     tracker = models.TextField(
         choices=[("JS", "JavaScript"), ("PIXEL", "Pixel (noscript)")]
@@ -88,12 +100,17 @@ class Hit(models.Model):
     # Advanced page information
     location = models.TextField(blank=True, db_index=True)
     referrer = models.TextField(blank=True, db_index=True)
-    load_time = models.FloatField(null=True)
+    load_time = models.FloatField(null=True, db_index=True)
+
+    # While not necessary, we store the root service directly for performance.
+    # It makes querying much easier; no need for inner joins.
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, db_index=True)
 
     class Meta:
         ordering = ["-start_time"]
         indexes = [
             models.Index(fields=["session", "-start_time"]),
+            models.Index(fields=["service", "-start_time"]),
             models.Index(fields=["session", "location"]),
             models.Index(fields=["session", "referrer"]),
         ]
@@ -105,5 +122,5 @@ class Hit(models.Model):
     def get_absolute_url(self):
         return reverse(
             "dashboard:service_session",
-            kwargs={"pk": self.session.service.pk, "session_pk": self.session.pk},
+            kwargs={"pk": self.service.pk, "session_pk": self.session.pk},
         )
