@@ -22,12 +22,10 @@ from .forms import ServiceForm
 from .mixins import DateRangeMixin
 
 
-class DashboardView(
-    LoginRequiredMixin, DateRangeMixin, ListView
-):
+class DashboardView(LoginRequiredMixin, DateRangeMixin, ListView):
     model = Service
     template_name = "dashboard/pages/dashboard.html"
-    paginate_by = 5
+    paginate_by = settings.DASHBOARD_PAGE_SIZE
 
     def get_queryset(self):
         return Service.objects.filter(
@@ -38,7 +36,9 @@ class DashboardView(
         data = super().get_context_data(**kwargs)
 
         for service in data["object_list"]:
-            service.stats = service.get_core_stats(self.get_start_date(), self.get_end_date())
+            service.stats = service.get_core_stats(
+                self.get_start_date(), self.get_end_date()
+            )
 
         return data
 
@@ -66,6 +66,7 @@ class ServiceView(
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
+        data["script_protocol"] = "https://" if settings.SCRIPT_USE_HTTPS else "http://"
         data["stats"] = self.object.get_core_stats(data["start_date"], data["end_date"])
         data["object_list"] = Session.objects.filter(
             service=self.get_object(),
