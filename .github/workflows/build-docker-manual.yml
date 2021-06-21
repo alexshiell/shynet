@@ -1,15 +1,13 @@
-name: Build docker images
+name: Build manual Docker images
 
 on:
-  push:
-    tags:
-      - "*"
-
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'  
 jobs:
   publish_to_docker_hub:
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,8 +16,7 @@ jobs:
         id: prep
         run: |
           DOCKER_IMAGE=milesmcc/shynet
-          VERSION=${GITHUB_REF#refs/tags/}
-          TAGS="${DOCKER_IMAGE}:${VERSION},${DOCKER_IMAGE}:latest"
+          TAGS="${DOCKER_IMAGE}:${{ github.event.inputs.tag }}"
           echo ::set-output name=tags::${TAGS}
           
       - name: Set up QEMU

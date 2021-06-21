@@ -18,7 +18,7 @@ import urllib.parse as urlparse
 from django.contrib.messages import constants as messages
 
 # Increment on new releases
-VERSION = "v0.9.1"
+VERSION = "v0.10.0"
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -310,7 +310,13 @@ NPM_FILE_PATTERNS = {
     "stimulus": [os.path.join("dist", "stimulus.umd.js")],
     "inter-ui": [os.path.join("Inter (web)", "*")],
     "@fortawesome": [os.path.join("fontawesome-free", "js", "all.min.js")],
-    "flag-icon-css": [os.path.join("css", "flag-icon.min.css"), os.path.join("flags", "*")],
+    "datamaps": [os.path.join("dist", "datamaps.world.min.js")],
+    "d3": ["d3.min.js"],
+    "topojson": [os.path.join("build", "topojson.min.js")],
+    "flag-icon-css": [
+        os.path.join("css", "flag-icon.min.css"),
+        os.path.join("flags", "*"),
+    ],
 }
 
 # Shynet
@@ -346,7 +352,14 @@ BLOCK_ALL_IPS = os.getenv("BLOCK_ALL_IPS", "False") == "True"
 AGGRESSIVE_HASH_SALTING = os.getenv("AGGRESSIVE_HASH_SALTING", "False") == "True"
 
 # What location url should be linked to in the frontend?
-LOCATION_URL = os.getenv("LOCATION_URL", "https://www.openstreetmap.org/?mlat=$LATITUDE&mlon=$LONGITUDE")
+LOCATION_URL = os.getenv(
+    "LOCATION_URL", "https://www.openstreetmap.org/?mlat=$LATITUDE&mlon=$LONGITUDE"
+)
 
 # How many services should be displayed on dashboard page?
 DASHBOARD_PAGE_SIZE = int(os.getenv("DASHBOARD_PAGE_SIZE", "5"))
+
+# Should background bars be scaled to full width?
+USE_RELATIVE_MAX_IN_BAR_VISUALIZATION = (
+    os.getenv("USE_RELATIVE_MAX_IN_BAR_VISUALIZATION", "True") == "True"
+)
